@@ -1,41 +1,43 @@
-angular.module("mainModule", [])
-    // Register an object instance as a value and name it "person"
-    .value("person", {
-        firstName: "",
-        lastName: "",
+(function() {
 
-        getFullName: function ()
-        {
-            return this.firstName + " " + this.lastName;
-        }
-    })
-    .value("hoge", {
+    var scheduleBaseUrl = 'https://spreadsheets.google.com/feeds/cells/';
 
-    })
-    // Get the "person" registered object instance through Dependency Injection
-    .controller("mainController", function ($scope, person, hoge)
-    {
-        console.log("------------------------------------------");
-        console.log(hoge);
-        console.log("------------------------------------------");
-        person.firstName = "John";
-        person.lastName = "Doe";
+    angular.module('app', []).controller('mainController', function ($scope, $http) {
 
-        // Set a variable on the scope to reference the "person" instance
-        // from the HTML template.
-        $scope.personInstance = person;
+        var renderSchedule = function (data) {
+            var schedules = [], cell, row;
+
+            for (var i = 0; i < data.feed.entry.length; i++) {
+                cell = data.feed.entry[i];
+                row = cell.gs$cell.row - 1;
+
+                if (!schedules[row]) { schedules[row] = {}; }
+
+                if (cell.gs$cell.col == 1) {
+                    schedules[row].time = cell.gs$cell.$t;
+                } else if (cell.gs$cell.col == 2) {
+                    schedules[row].action = cell.gs$cell.$t;
+                }
+            }
+
+            $scope.schedules = schedules;
+
+            $('#jsiContainer').removeClass('hidden');
+        };
+
+        $scope.init = function() {
+            $scope.getCall();
+        };
+
+        $scope.getCall = function () {
+            $scope.schedules = [];
+            $http.get(
+                scheduleBaseUrl + $scope.scheduleDataId + '/od6/public/values?alt=json', {}
+            ).success(renderSchedule).error(function () {
+                alert('通信エラー')
+            });
+        };
+
     });
 
-
-angular.module("app", [])
-    .controller("simpleController", function($scope) {
-        // Initialize the model variables
-        $scope.firstName = "John";
-        $scope.lastName = "Doe";
-
-        // Define utility functions
-        $scope.getFullName = function ()
-        {
-            return $scope.firstName + " " + $scope.lastName;
-        };
-});
+})();
